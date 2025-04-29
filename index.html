@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشغل يوتيوب المحسن جداً</title>
+    <style>
+        /* Reset and Basic Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* خط أفضل */
+        }
+
+        :root {
+            --primary-color: rgba(255, 0, 0, 0.8);
+            --primary-color-light: rgba(255, 0, 0, 0.6);
+            --primary-color-dark: rgba(200, 0, 0, 1);
+            --bg-color: #000;
+            --text-color: #fff;
+            --container-bg: rgba(0, 0, 0, 0.8);
+            --input-bg: rgba(255, 255, 255, 0.1);
+            --input-border: rgba(255, 0, 0, 0.3);
+            --hover-bg: rgba(255, 0, 0, 0.3);
+            --shadow-color: rgba(255, 0, 0, 0.3);
+            --disabled-color: #888;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* محاذاة للأعلى للسماح بالتمرير */
+            overflow-x: hidden;
+            position: relative;
+            padding: 20px;
+            color: var(--text-color);
+        }
+
+        /* Animated Background (unchanged) */
+        .animated-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 0, 0, 0.1);
+            animation: float 12s infinite ease-in-out; /* تعديل بسيط */
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(110vh) scale(0.5); opacity: 0; }
+            50% { opacity: 0.5; }
+            75% { transform: translateY(-50vh) scale(1); opacity: 0.2; }
+        }
+
+        /* Main Container */
+        .main-container {
+            position: relative;
+            width: 100%;
+            max-width: 1300px; /* زيادة العرض قليلاً */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: row; /* تغيير إلى صف */
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap; /* السماح بالالتفاف */
+        }
+
+        /* Player Area */
+        .player-area {
+            flex: 3; /* يأخذ مساحة أكبر */
+            min-width: 400px; /* حد أدنى للعرض */
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Playlist Area */
+        .playlist-area {
+            flex: 1; /* يأخذ مساحة أقل */
+            min-width: 300px; /* حد أدنى للعرض */
+            max-height: 80vh; /* تحديد ارتفاع أقصى */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: sticky; /* تثبيت قائمة التشغيل عند التمرير */
+            top: 20px;
+        }
+
+        /* Player Container */
+        .player-container {
+            width: 100%;
+            background: var(--container-bg);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 0 25px var(--shadow-color);
+            backdrop-filter: blur(8px);
+        }
+
+        /* Search Container */
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        #videoUrl {
+            flex: 1;
+            padding: 12px 15px;
+            font-size: 16px;
+            border: 2px solid var(--input-border);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        #videoUrl:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px var(--shadow-color);
+        }
+        .add-btn {
+            padding: 12px 15px;
+            background: var(--primary-color-light);
+            color: var(--text-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+        .add-btn:hover {
+            background: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        /* Video Wrapper */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background: #111;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        #videoPlayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Controls Container */
+        .controls-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-top: 10px;
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .progress-bar-filled {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-color);
+            border-radius: 4px;
+            transition: width 0.1s linear; /* انتقال سلس */
+        }
+        .progress-bar-buffered {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+            z-index: -1; /* خلف الشريط الرئيسي */
+            transition: width 0.2s linear;
+        }
+         .progress-bar-thumb { /* نقطة صغيرة عند نهاية الشريط */
+            position: absolute;
+            top: 50%;
+            right: 0; /* يبدأ من اليمين بسبب dir=rtl */
+            width: 14px;
+            height: 14px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            transform: translate(50%, -50%); /* ضبط الموضع */
+            opacity: 0; /* مخفي بشكل افتراضي */
+            transition: opacity 0.2s ease;
+            pointer-events: none; /* لا يتفاعل مع النقر */
+        }
+        .progress-bar-container:hover .progress-bar-thumb {
+            opacity: 1; /* يظهر عند التحويم */
+        }
+
+
+        /* Main Controls */
+        .main-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap; /* للسماح بالالتفاف في الشاشات الصغيرة */
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s ease, transform 0.2s ease;
+            line-height: 1; /* لمنع مشاكل الارتفاع */
+        }
+        .control-button:hover {
+            color: var(--primary-color);
+            transform: scale(1.1);
+        }
+        .control-button:disabled {
+            color: var(--disabled-color);
+            cursor: not-allowed;
+            transform: none;
+        }
+         .control-button.active { /* للتكرار والتبديل */
+             color: var(--primary-color);
+         }
+
+        /* Time Display */
+        .time-display {
+            font-size: 14px;
+            min-width: 100px; /* لضمان عرض الوقت بشكل ثابت */
+            text-align: center;
+        }
+
+        /* Volume Control */
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #volumeSlider {
+            width: 80px;
+            height: 5px;
+            cursor: pointer;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            outline: none;
+            transition: background 0.2s ease;
+        }
+        /* تخصيص شريط التمرير لـ Webkit (Chrome, Safari) */
+        #volumeSlider::-webkit-slider-thumb {
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        /* تخصيص شريط التمرير لـ Firefox */
+        #volumeSlider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .volume-control:hover #volumeSlider { /* يمكن إظهاره عند التحويم إذا أردت */
+            /* display: inline-block; */
+        }
+
+        /* Playback Speed Control */
+        #speedSelector {
+            background: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--input-border);
+            border-radius: 5px;
+            padding: 3px 5px;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+        }
+        #speedSelector option {
+            background: #333;
+            color: var(--text-color);
+        }
+
+        /* Playlist Container */
+        .playlist-container {
+            width: 100%;
+            background: var(--container-bg);
+            border-radius: 10px;
+            padding: 10px;
+            max-height: calc(80vh - 50px); /* ارتفاع مرتبط بارتفاع playlist-area */
+            overflow-y: auto;
+            box-shadow: 0 0 15px var(--shadow-color);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Playlist Item */
+        .playlist-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--input-bg);
+            border-radius: 5px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-right: 3px solid transparent; /* حد جانبي لتمييز العنصر النشط */
+        }
+        .playlist-item:hover {
+            background: var(--hover-bg);
+        }
+        .playlist-item.playing {
+            background: var(--primary-color-light);
+            border-right-color: var(--primary-color); /* تمييز الفيديو المشغل */
+        }
+        .playlist-item-title {
+            flex: 1;
+            color: var(--text-color);
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-left: 10px; /* مسافة لليسار للأزرار */
+        }
+        .playlist-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .playlist-item-actions button {
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        .playlist-item-actions button:hover {
+            background: var(--primary-color);
+        }
+
+        /* Notification (unchanged) */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px var(--shadow-color);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            font-size: 15px;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px); /* حركة بسيطة للأعلى */
+        }
+
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .main-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .player-area, .playlist-area {
+                width: 100%;
+                max-width: 800px; /* حد أقصى لعرض العناصر في الوضع العمودي */
+                flex: none; /* إلغاء توزيع flex */
+                position: static; /* إلغاء التثبيت */
+                max-height: none; /* إلغاء تحديد الارتفاع */
+            }
+            .playlist-area {
+                margin-top: 20px; /* مسافة إضافية */
+            }
+            .playlist-container {
+                 max-height: 300px; /* تحديد ارتفاع لقائمة التشغيل في الشاشات الأصغر */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .player-container, .playlist-container {
+                padding: 10px;
+            }
+            #videoUrl { padding: 10px 12px; font-size: 14px; }
+            .add-btn { padding: 10px 12px; font-size: 18px; }
+            .control-button { font-size: 18px; }
+            .time-display { font-size: 12px; min-width: 80px; }
+            #volumeSlider { width: 60px; }
+            .playlist-item-title { font-size: 13px; }
+            .playlist-item-actions button { font-size: 11px; padding: 3px 6px; }
+            .main-controls { justify-content: center; } /* توسيط العناصر في الشاشات الصغيرة جدًا */
+        }
+
+        /* Spinner for loading indicator */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10; /* فوق الفيديو */
+            display: none; /* مخفي افتراضيا */
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .video-wrapper.loading .loader {
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="animated-background" id="animatedBg"></div>
+    <div id="notification" class="notification"></div>
+
+    <div class="main-container">
+        <!-- منطقة المشغل -->
+        <div class="player-area">
+            <div class="player-container">
+                <div class="search-container">
+                    <input type="text"
+                           id="videoUrl"
+                           placeholder="ضع رابط فيديو يوتيوب أو معرف الفيديو هنا..."
+                           autocomplete="off">
+                    <button class="add-btn" id="addToPlaylist" title="إضافة للقائمة وتشغيل (إذا كانت فارغة)">+</button>
+                </div>
+
+                <div class="video-wrapper" id="videoWrapper">
+                    <div class="loader" id="videoLoader"></div>
+                    <div id="videoPlayer"></div> <!-- تغيير من iframe إلى div -->
+                </div>
+
+                <div class="controls-container">
+                    <!-- شريط التقدم -->
+                    <div class="progress-bar-container" id="progressBarContainer">
+                        <div class="progress-bar-buffered" id="progressBarBuffered"></div>
+                        <div class="progress-bar-filled" id="progressBarFilled"></div>
+                        <div class="progress-bar-thumb" id="progressBarThumb"></div>
+                    </div>
+
+                    <!-- أزرار التحكم الرئيسية -->
+                    <div class="main-controls">
+                        <div class="control-group">
+                            <button class="control-button" id="prevBtn" title="السابق (Shift+P)">⏮</button>
+                            <button class="control-button" id="playPauseBtn" title="تشغيل/إيقاف (Space/K)">▶</button>
+                            <button class="control-button" id="nextBtn" title="التالي (Shift+N)">⏭</button>
+                        </div>
+
+                        <div class="control-group volume-control">
+                            <button class="control-button" id="muteBtn" title="كتم/إلغاء الكتم (M)">🔊</button>
+                            <input type="range" id="volumeSlider" min="0" max="100" value="100" title="مستوى الصوت">
+                        </div>
+
+                        <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+
+                        <div class="control-group">
+                             <select id="speedSelector" title="سرعة التشغيل">
+                                <option value="0.25">0.25x</option>
+                                <option value="0.5">0.5x</option>
+                                <option value="0.75">0.75x</option>
+                                <option value="1" selected>1x</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="1.75">1.75x</option>
+                                <option value="2">2x</option>
+                            </select>
+                            <button class="control-button" id="repeatBtn" title="تكرار (R)">🔁</button> <!-- Modes: off, all, one -->
+                            <button class="control-button" id="shuffleBtn" title="تبديل عشوائي (S)">🔀</button>
+                            <button class="control-button" id="fullscreenBtn" title="ملء الشاشة (F)">⛶</button>
+                            <!-- أزرار إضافية (اختياري، يمكن إضافة لاحقاً) -->
+                             <!-- <button class="control-button" id="pipBtn" title="صورة داخل صورة (I)">❐</button> -->
+                             <!-- <button class="control-button" id="skipBackwardBtn" title="رجوع 10 ثوان (J)">↺¹⁰</button> -->
+                             <!-- <button class="control-button" id="skipForwardBtn" title="تقديم 10 ثوان (L)">¹⁰↻</button> -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <!-- يمكن إضافة أقسام أخرى هنا لاحقًا مثل معلومات الفيديو، التعليقات (وهمية)، إلخ -->
+        </div>
+
+        <!-- منطقة قائمة التشغيل -->
+        <div class="playlist-area">
+             <h3 style="text-align: center; margin-bottom: 5px;">قائمة التشغيل</h3>
+             <div class="playlist-container" id="playlist">
+                <!-- قائمة التشغيل ستضاف هنا ديناميكيًا -->
+                <p id="emptyPlaylistMsg" style="text-align: center; color: #aaa; padding: 20px;">أضف روابط فيديوهات للبدء!</p>
+             </div>
+        </div>
+    </div>
+
+    <script>
+        // إنشاء الفقاعات المتحركة (unchanged)
+        function createBubbles() { /* ... الكود كما هو ... */ } // (الكود موجود في الملف الأصلي، أبقيته مختصراً هنا)
+        createBubbles(); // استدعاء الدالة
+
+        // -------------------------------------------------------------
+        //  YouTube IFrame Player API & Global Variables
+        // -------------------------------------------------------------
+        let player; // سيحتوي على كائن مشغل اليوتيوب
+        let playlist = [];
+        let originalPlaylistOrder = []; // للحفاظ على الترتيب الأصلي عند التبديل العشوائي
+        let currentVideoIndex = -1;
+        let isPlayerReady = false;
+        let progressUpdateInterval; // لتحديث شريط التقدم
+        let lastSavedPosition = {}; // لتخزين آخر موضع لكل فيديو {videoId: time}
+
+        // States
+        let repeatMode = 'off'; // 'off', 'all', 'one'
+        let isShuffleOn = false;
+        let currentVolume = 100;
+        let isMuted = false;
+        let currentSpeed = 1;
+
+        const REPEAT_MODES = ['off', 'all', 'one'];
+        const REPEAT_ICONS = {'off': '🔁', 'all': '🔁¹', 'one': '🔂'}; // أيقونات مختلفة للتكرار
+
+        // DOM Elements
+        const videoUrlInput = document.getElementById('videoUrl');
+        const addToPlaylistBtn = document.getElementById('addToPlaylist');
+        const videoWrapper = document.getElementById('videoWrapper');
+        const videoLoader = document.getElementById('videoLoader');
+        const playlistContainer = document.getElementById('playlist');
+        const emptyPlaylistMsg = document.getElementById('emptyPlaylistMsg');
+        const progressBarContainer = document.getElementById('progressBarContainer');
+        const progressBarFilled = document.getElementById('progressBarFilled');
+        const progressBarBuffered = document.getElementById('progressBarBuffered');
+        const progressBarThumb = document.getElementById('progressBarThumb');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const repeatBtn = document.getElementById('repeatBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const speedSelector = document.getElementById('speedSelector');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const notification = document.getElementById('notification');
+
+
+        // -------------------------------------------------------------
+        //  YouTube IFrame API Setup
+        // -------------------------------------------------------------
+
+        // 1. تحميل مكتبة YouTube API بشكل غير متزامن
+        function loadYouTubeAPI() {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            console.log("YouTube IFrame API script requested.");
+        }
+
+        // 2. هذه الدالة ستُستدعى تلقائياً عند تحميل الـ API
+        function onYouTubeIframeAPIReady() {
+            console.log("YouTube IFrame API Ready.");
+            isPlayerReady = false; // إعادة تعيين عند محاولة إعادة الإنشاء
+            // لا ننشئ المشغل هنا مباشرة، ننتظر تحميل قائمة التشغيل أولاً
+             loadAppState(); // تحميل الحالة بعد التأكد من جاهزية API
+             initializePlayer(); // محاولة إنشاء المشغل الآن
+        }
+
+        // 3. إنشاء مشغل اليوتيوب
+        function initializePlayer(videoId = null) {
+            // تأكد من عدم وجود مشغل قديم
+             if (player && typeof player.destroy === 'function') {
+                try {
+                    player.destroy();
+                    console.log("Previous player instance destroyed.");
+                } catch (e) {
+                    console.error("Error destroying previous player:", e);
+                }
+                player = null; // تأكد من أنه تم تعيينه إلى null
+            }
+
+             console.log(`Initializing player${videoId ? ' with videoId: ' + videoId : ''}...`);
+             // التحقق من وجود العنصر الهدف
+            if (!document.getElementById('videoPlayer')) {
+                console.error("Player container div (#videoPlayer) not found!");
+                return;
+            }
+
+             try {
+                player = new YT.Player('videoPlayer', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId, // يمكن أن يكون null في البداية
+                    playerVars: {
+                        'playsinline': 1,       // للتشغيل المباشر في iOS
+                        'autoplay': 0,          // لن نقوم بالتشغيل التلقائي هنا، نتحكم به لاحقاً
+                        'controls': 0,          // إخفاء عناصر تحكم يوتيوب الافتراضية
+                        'rel': 0,               // عدم عرض فيديوهات ذات صلة
+                        'modestbranding': 1,    // تقليل شعار يوتيوب
+                        'iv_load_policy': 3,    // إخفاء التعليقات التوضيحية للفيديو
+                        'fs': 0                 // تعطيل زر ملء الشاشة الافتراضي (نستخدم زرنا الخاص)
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange,
+                        'onError': onPlayerError,
+                        // 'onPlaybackQualityChange': onPlayerPlaybackQualityChange, // لا يمكننا تغييرها بدون API
+                        'onPlaybackRateChange': onPlayerPlaybackRateChange
+                    }
+                });
+                console.log("YT.Player object created.");
+            } catch (error) {
+                console.error("Error creating YT.Player:", error);
+                showNotification(`خطأ في تهيئة المشغل: ${error.message}`);
+            }
+        }
+
+        // 4. عند جاهزية المشغل
+        function onPlayerReady(event) {
+            console.log("Player Ready:", event.target);
+            isPlayerReady = true;
+            videoWrapper.classList.remove('loading');
+            applyInitialSettings(); // تطبيق الإعدادات المحفوظة (الصوت، السرعة)
+            startProgressUpdater(); // بدء تحديث شريط التقدم
+
+            // استئناف من الموضع المحفوظ إذا كان الفيديو الحالي قد تم تحميله
+            const currentVideo = playlist[currentVideoIndex];
+            if (currentVideo && lastSavedPosition[currentVideo.id]) {
+                 const resumeTime = parseFloat(lastSavedPosition[currentVideo.id]);
+                 // الاستئناف فقط إذا كان الوقت أكبر من بضع ثوان (لتجنب الاستئناف عند البداية)
+                 if (resumeTime > 3 && resumeTime < player.getDuration() - 5) {
+                    player.seekTo(resumeTime, true);
+                    console.log(`Resuming video ${currentVideo.id} at ${formatTime(resumeTime)}`);
+                    showNotification(`تم الاستئناف من ${formatTime(resumeTime)}`);
+                 }
+            }
+            // تأكد من تحديث حالة الأزرار
+            updatePlayPauseButton();
+            updateVolumeUI();
+            updateSpeedSelector();
+            updateNavButtons();
+        }
+
+        // 5. عند تغير حالة المشغل (تشغيل، إيقاف، انتهاء، ...)
+        function onPlayerStateChange(event) {
+            console.log("Player State Changed:", event.data, stateToString(event.data));
+            updatePlayPauseButton(); // تحديث زر التشغيل/الإيقاف
+            saveCurrentPosition(); // حفظ الموضع عند الإيقاف المؤقت أو التغيير
+
+            if (event.data === YT.PlayerState.ENDED) {
+                handleVideoEnd();
+            } else if (event.data === YT.PlayerState.PLAYING) {
+                 videoWrapper.classList.remove('loading');
+                 startProgressUpdater();
+                 updatePlaylistHighlight(); // التأكيد على العنصر المشغل
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                stopProgressUpdater();
+            } else if (event.data === YT.PlayerState.BUFFERING) {
+                 videoWrapper.classList.add('loading');
+                stopProgressUpdater(); // إيقاف التحديث أثناء التحميل
+            } else if (event.data === YT.PlayerState.CUED) {
+                videoWrapper.classList.remove('loading');
+                // الفيديو جاهز للتشغيل
+            }
+             updateNavButtons(); // تحديث حالة أزرار التنقل
+        }
+
+        // 6. عند حدوث خطأ في المشغل
+        function onPlayerError(event) {
+            videoWrapper.classList.remove('loading');
+            stopProgressUpdater();
+            console.error("Player Error:", event.data);
+            let errorMsg = `حدث خطأ (${event.data})`;
+            switch (event.data) {
+                case 2: errorMsg = 'طلب غير صالح (قد يكون معرف الفيديو خاطئ).'; break;
+                case 5: errorMsg = 'خطأ في مشغل HTML5.'; break;
+                case 100: errorMsg = 'الفيديو غير موجود أو خاص.'; break;
+                case 101: case 150: errorMsg = 'صاحب الفيديو لا يسمح بتشغيله في مشغلات مضمنة.'; break;
+            }
+            showNotification(errorMsg);
+            // محاولة الانتقال للفيديو التالي تلقائياً عند حدوث خطأ؟ (اختياري)
+            // setTimeout(playNext, 3000);
+        }
+
+        // 7. عند تغير سرعة التشغيل (للتأكيد فقط، نحن نتحكم بها)
+        function onPlayerPlaybackRateChange(event) {
+            console.log("Playback Rate Changed (by player):", event.data);
+            currentSpeed = event.data;
+            speedSelector.value = currentSpeed;
+             saveAppState(); // حفظ السرعة الجديدة
+        }
+
+        // دالة مساعدة لتحويل رقم الحالة إلى نص مفهوم
+        function stateToString(state) {
+            switch (state) {
+                case -1: return 'UNSTARTED';
+                case YT.PlayerState.ENDED: return 'ENDED';
+                case YT.PlayerState.PLAYING: return 'PLAYING';
+                case YT.PlayerState.PAUSED: return 'PAUSED';
+                case YT.PlayerState.BUFFERING: return 'BUFFERING';
+                case YT.PlayerState.CUED: return 'CUED';
+                default: return 'UNKNOWN';
+            }
+        }
+
+        // -------------------------------------------------------------
+        //  Playlist Management
+        // -------------------------------------------------------------
+
+        function loadPlaylist() {
+            const savedPlaylist = localStorage.getItem('youtubePlaylist');
+            if (savedPlaylist) {
+                playlist = JSON.parse(savedPlaylist);
+                originalPlaylistOrder = [...playlist]; // نسخ لترتيب الأصلي
+                console.log("Playlist loaded from localStorage:", playlist.length, "items");
+            } else {
+                playlist = [];
+                originalPlaylistOrder = [];
+                console.log("No saved playlist found.");
+            }
+             renderPlaylist(); // دائماً عرض القائمة (حتى لو فارغة)
+        }
+
+        function savePlaylist() {
+            localStorage.setItem('youtubePlaylist', JSON.stringify(playlist));
+            console.log("Playlist saved to localStorage.");
+            // لا نحفظ originalPlaylistOrder هنا، يتم إنشاؤها عند التحميل
+        }
+
+        function renderPlaylist() {
+            playlistContainer.innerHTML = ''; // مسح القائمة الحالية
+
+            if (playlist.length === 0) {
+                playlistContainer.appendChild(emptyPlaylistMsg);
+                emptyPlaylistMsg.style.display = 'block';
+                updateNavButtons(); // تعطيل الأزرار إذا كانت القائمة فارغة
+                return;
+            }
+
+            emptyPlaylistMsg.style.display = 'none';
+
+            const displayList = isShuffleOn ? getShuffledIndices().map(i => playlist[i]) : playlist;
+            const displayIndices = isShuffleOn ? getShuffledIndices() : playlist.map((_, i) => i); // فهارس العرض
+
+            displayList.forEach((item, displayIndex) => {
+                const originalIndex = isShuffleOn ? displayIndices[displayIndex] : displayIndex; // الفهرس الحقيقي في playlist
+                const playlistItem = document.createElement('div');
+                playlistItem.className = 'playlist-item';
+                playlistItem.dataset.originalIndex = originalIndex; // تخزين الفهرس الأصلي
+                if (originalIndex === currentVideoIndex) {
+                    playlistItem.classList.add('playing');
+                }
+
+                // استخدام معرف الفيديو كعنوان مؤقت
+                const title = item.title || `فيديو ${item.id.substring(0, 6)}...`;
+
+                playlistItem.innerHTML = `
+                    <div class="playlist-item-title" title="${item.url}\n${title}">${title}</div>
+                    <div class="playlist-item-actions">
+                        <button class="play-btn" data-original-index="${originalIndex}" title="تشغيل">▶</button>
+                        <button class="delete-btn" data-original-index="${originalIndex}" title="حذف">🗑</button>
+                    </div>
+                `;
+
+                // حدث النقر على العنصر نفسه لتشغيله
+                playlistItem.querySelector('.playlist-item-title').addEventListener('click', () => {
+                    playVideo(originalIndex);
+                });
+
+                playlistContainer.appendChild(playlistItem);
+            });
+
+            // إضافة مستمعات الأحداث لأزرار التشغيل والحذف بعد إضافتها
+            document.querySelectorAll('.play-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // منع النقر على العنصر الأصلي
+                    const index = parseInt(this.getAttribute('data-original-index'));
+                    playVideo(index);
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // منع النقر على العنصر الأصلي
+                    const index = parseInt(this.getAttribute('data-original-index'));
+                    removeFromPlaylist(index);
+                });
+            });
+
+            updateNavButtons(); // تحديث حالة أزرار التنقل بعد عرض القائمة
+        }
+
+        function extractVideoId(url) {
+            // (الكود كما هو في الملف الأصلي)
+             const patterns = [
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&]+)/,
+                /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^?]+)/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^?]+)/,
+                 /([a-zA-Z0-9_-]{11})/ // محاولة التقاط أي تسلسل يشبه معرف فيديو
+            ];
+             url = url.trim(); // إزالة المسافات البيضاء
+
+            for (let pattern of patterns) {
+                const match = url.match(pattern);
+                if (match && match[1] && match[1].length === 11) { // التأكد من طول المعرف
+                     // التحقق من عدم وجود أحرف غير صالحة (تزيد من الدقة قليلاً)
+                     if (/^[a-zA-Z0-9_-]+$/.test(match[1])) {
+                         return match[1];
+                     }
+                }
+            }
+            // إذا لم يتم العثور على رابط، افترض أن الإدخال هو المعرف نفسه إذا كان طوله 11
+            if (url.length === 11 && /^[a-zA-Z0-9_-]+$/.test(url)) {
+                 return url;
+            }
+            return null;
+        }
+
+        // لا يمكن جلب العنوان الحقيقي بدون API
+        function getVideoTitlePlaceholder(videoId) {
+            return `فيديو ${videoId}`; // عنوان مؤقت بسيط
+        }
+
+        async function addToPlaylist(url) {
+            const videoId = extractVideoId(url);
+            if (videoId) {
+                // التحقق مما إذا كان الفيديو موجوداً بالفعل
+                if (playlist.some(item => item.id === videoId)) {
+                    showNotification('الفيديو موجود بالفعل في القائمة.');
+                    videoUrlInput.value = ''; // مسح الحقل
+                    videoUrlInput.focus();
+                    return;
+                }
+
+                const title = getVideoTitlePlaceholder(videoId); // استخدام عنوان مؤقت
+                const newItem = {
+                    id: videoId,
+                    title: title,
+                    url: url.includes('http') ? url : `https://www.youtube.com/watch?v=${videoId}` // تخزين رابط تقريبي
+                };
+
+                playlist.push(newItem);
+                originalPlaylistOrder.push(newItem); // إضافة للترتيب الأصلي أيضاً
+                savePlaylist();
+                renderPlaylist();
+                showNotification('تمت إضافة الفيديو إلى قائمة التشغيل');
+
+                 // إذا كانت القائمة فارغة قبل الإضافة، أو لا يوجد مشغل حالي، قم بتشغيل الفيديو الجديد
+                 if (!player || currentVideoIndex === -1) {
+                     const newIndex = playlist.length - 1;
+                     playVideo(newIndex);
+                 } else if (player && player.getPlayerState && player.getPlayerState() === YT.PlayerState.ENDED) {
+                      // إذا كان المشغل قد انتهى لتوه، شغل الفيديو الجديد
+                      const newIndex = playlist.length - 1;
+                      playVideo(newIndex);
+                 }
+
+
+                videoUrlInput.value = ''; // مسح حقل الإدخال
+            } else {
+                showNotification('رابط أو معرف فيديو غير صالح');
+            }
+        }
+
+        function removeFromPlaylist(indexToRemove) {
+            if (indexToRemove < 0 || indexToRemove >= playlist.length) {
+                console.error("Invalid index to remove:", indexToRemove);
+                return;
+            }
+
+            const removedItem = playlist[indexToRemove];
+            console.log("Removing video at index:", indexToRemove, "ID:", removedItem.id);
+
+            // إزالة من القائمة الرئيسية وقائمة الترتيب الأصلي
+            playlist.splice(indexToRemove, 1);
+            originalPlaylistOrder = originalPlaylistOrder.filter(item => item.id !== removedItem.id); // إزالة حسب المعرف
+
+            // التعامل مع الفهرس الحالي
+            if (playlist.length === 0) {
+                // القائمة فارغة الآن
+                currentVideoIndex = -1;
+                if (player && typeof player.stopVideo === 'function') {
+                    player.stopVideo(); // إيقاف الفيديو
+                    player.clearVideo ? player.clearVideo() : player.cueVideoById(''); // محاولة مسح الفيديو
+                }
+                 updateUIForNoVideo(); // تحديث الواجهة لحالة عدم وجود فيديو
+            } else {
+                 // إذا تم حذف الفيديو المشغل حالياً
+                if (indexToRemove === currentVideoIndex) {
+                     // حاول تشغيل الفيديو التالي (أو الأول إذا كان المحذوف هو الأخير)
+                     // نستخدم indexToRemove لأنه بعد الحذف، هذا الفهرس يشير إلى العنصر التالي
+                    let nextIndex = indexToRemove % playlist.length;
+                    playVideo(nextIndex); // ستقوم playVideo بتحديث currentVideoIndex
+                } else if (indexToRemove < currentVideoIndex) {
+                    // إذا تم حذف عنصر قبل العنصر الحالي، يجب تقليل الفهرس الحالي
+                    currentVideoIndex--;
+                }
+                // إذا تم حذف عنصر بعد العنصر الحالي، لا يتغير currentVideoIndex
+            }
+
+            savePlaylist();
+            saveAppState(); // حفظ الفهرس الجديد
+            renderPlaylist();
+             // قد تحتاج إلى إعادة تطبيق التبديل العشوائي إذا كان نشطًا
+             if (isShuffleOn) {
+                applyShuffle(); // تحديث قائمة العرض العشوائي
+                renderPlaylist(); // إعادة العرض بالترتيب الجديد
+             }
+            showNotification('تمت إزالة الفيديو من قائمة التشغيل');
+        }
+
+        function updateUIForNoVideo() {
+            timeDisplay.textContent = "00:00 / 00:00";
+            progressBarFilled.style.width = '0%';
+            progressBarBuffered.style.width = '0%';
+            progressBarThumb.style.opacity = '0';
+             playPauseBtn.textContent = '▶';
+             playPauseBtn.title = 'تشغيل';
+             // قد ترغب في تعطيل معظم الأزرار هنا
+             updateNavButtons();
+        }
+
+        // -------------------------------------------------------------
+        //  Video Playback Control
+        // -------------------------------------------------------------
+
+        function playVideo(index) {
+            if (!playlist || index < 0 || index >= playlist.length) {
+                console.error("Invalid index or empty playlist:", index);
+                showNotification("لا يمكن تشغيل الفيديو، تحقق من القائمة.");
+                 if (playlist.length === 0) updateUIForNoVideo();
+                return;
+            }
+
+            const video = playlist[index];
+            console.log(`Attempting to play video at index ${index}: ID = ${video.id}`);
+
+            currentVideoIndex = index;
+            saveAppState(); // حفظ الفهرس الحالي
+
+            if (!player || !isPlayerReady) {
+                 console.log("Player not ready or not initialized. Initializing with video:", video.id);
+                 // إذا لم يتم إنشاء المشغل، قم بإنشائه مع الفيديو الأول
+                 initializePlayer(video.id);
+                 // سيتم التشغيل تلقائيًا بواسطة onPlayerReady إذا أضفنا منطقًا لذلك،
+                 // أو يمكننا محاولة التشغيل هنا مرة أخرى بعد تأخير قصير
+                 setTimeout(() => {
+                     if (player && typeof player.playVideo === 'function') {
+                         console.log("Retrying playVideo after initialization delay.");
+                         player.playVideo();
+                          videoWrapper.classList.add('loading'); // إظهار التحميل
+                     }
+                 }, 1000); // تأخير للسماح بتهيئة المشغل
+            } else {
+                 console.log("Player exists. Loading video:", video.id);
+                 videoWrapper.classList.add('loading'); // إظهار التحميل
+                 player.loadVideoById(video.id);
+                 // سيبدأ التشغيل تلقائيًا بسبب onPlayerStateChange أو onReady
+                 // يمكن ضمان التشغيل بـ player.playVideo() هنا أيضاً إذا لزم الأمر
+                  // player.playVideo(); // قد يكون هذا ضرورياً أحياناً
+            }
+
+            renderPlaylist(); // تحديث التظليل في القائمة
+             updateNavButtons(); // تحديث حالة الأزرار
+             resetProgress(); // إعادة تعيين شريط التقدم
+        }
+
+         function resetProgress() {
+            progressBarFilled.style.width = '0%';
+            progressBarBuffered.style.width = '0%';
+            progressBarThumb.style.opacity = '0';
+            timeDisplay.textContent = "00:00 / 00:00";
+             if (progressUpdateInterval) {
+                 clearInterval(progressUpdateInterval);
+                 progressUpdateInterval = null;
+             }
+        }
+
+
+        function handleVideoEnd() {
+            console.log("Video ended. Handling next action based on repeat/shuffle.");
+            stopProgressUpdater(); // إيقاف تحديث التقدم للفيديو المنتهي
+            saveCurrentPosition(0); // حفظ الموضع كـ 0 للفيديو المنتهي
+
+            if (repeatMode === 'one') {
+                // تكرار نفس الفيديو
+                console.log("Repeat Mode: one. Replaying current video.");
+                player.seekTo(0, true);
+                player.playVideo();
+            } else {
+                // الانتقال للفيديو التالي (مع مراعاة التبديل العشوائي والتكرار الكلي)
+                playNext();
+            }
+        }
+
+        function playNext() {
+            if (playlist.length === 0) return; // لا يوجد شيء لتشغيله
+
+            let nextIndex;
+
+            if (isShuffleOn) {
+                const shuffledIndices = getShuffledIndices();
+                 // ابحث عن الفهرس *العشوائي* الحالي
+                const currentShuffledIndex = shuffledIndices.indexOf(currentVideoIndex);
+
+                if (currentShuffledIndex === -1) { // حالة نادرة، ابدأ من أول القائمة العشوائية
+                    nextIndex = shuffledIndices[0];
+                 } else if (currentShuffledIndex < shuffledIndices.length - 1) {
+                    // انتقل للعنصر التالي في القائمة العشوائية
+                     nextIndex = shuffledIndices[currentShuffledIndex + 1];
+                     console.log(`Shuffle ON: Playing next shuffled video. Current shuffled index: ${currentShuffledIndex}, Next original index: ${nextIndex}`);
+                } else {
+                    // وصلت لنهاية القائمة العشوائية
+                    if (repeatMode === 'all') {
+                        // كرر الكل: ابدأ من أول القائمة العشوائية
+                         nextIndex = shuffledIndices[0];
+                         console.log("Shuffle ON & Repeat All ON: Reached end of shuffled list, starting from beginning.");
+                    } else {
+                        // لا تكرار: توقف أو لا تفعل شيئاً
+                        console.log("Shuffle ON & Repeat OFF: Reached end of shuffled list. Stopping.");
+                         updateUIForNoVideo(); // أو أي إجراء آخر عند الانتهاء
+                        return; // لا تشغل شيئاً جديداً
+                    }
+                }
+            } else {
+                // الترتيب العادي
+                if (currentVideoIndex < playlist.length - 1) {
+                    // انتقل للفيديو التالي في القائمة العادية
+                    nextIndex = currentVideoIndex + 1;
+                    console.log(`Shuffle OFF: Playing next video in order. Next index: ${nextIndex}`);
+                } else {
+                    // وصلت لنهاية القائمة العادية
+                    if (repeatMode === 'all') {
+                        // كرر الكل: ابدأ من أول القائمة العادية
+                        nextIndex = 0;
+                         console.log("Shuffle OFF & Repeat All ON: Reached end of list, starting from beginning.");
+                    } else {
+                        // لا تكرار: توقف أو لا تفعل شيئاً
+                        console.log("Shuffle OFF & Repeat OFF: Reached end of list. Stopping.");
+                         updateUIForNoVideo(); // أو أي إجراء آخر عند الانتهاء
+                        return; // لا تشغل شيئاً جديداً
+                    }
+                }
+            }
+
+            if (nextIndex !== undefined) {
+                playVideo(nextIndex);
+            }
+        }
+
+        function playPrevious() {
+            if (playlist.length === 0) return;
+
+             let prevIndex;
+
+             // إذا كان الفيديو في الثواني الأولى، انتقل للسابق، وإلا أعد التشغيل
+             if (player && typeof player.getCurrentTime === 'function' && player.getCurrentTime() > 3) {
+                 player.seekTo(0, true);
+                 console.log("Playing previous: Restarting current video.");
+                 return;
+             }
+
+
+             if (isShuffleOn) {
+                const shuffledIndices = getShuffledIndices();
+                const currentShuffledIndex = shuffledIndices.indexOf(currentVideoIndex);
+
+                if (currentShuffledIndex <= 0) { // إذا كان الأول أو غير موجود
+                     // انتقل للأخير في القائمة العشوائية (إذا كان التكرار مفعلاً) أو لا تفعل شيئاً
+                    if (repeatMode === 'all' && shuffledIndices.length > 0) {
+                         prevIndex = shuffledIndices[shuffledIndices.length - 1];
+                         console.log(`Shuffle ON & Repeat All ON: Playing previous from start, going to last shuffled: ${prevIndex}`);
+                     } else {
+                         console.log("Shuffle ON: At start or invalid index, no previous.");
+                         player.seekTo(0, true); // أعد التشغيل الحالي فقط
+                         return;
+                     }
+                } else {
+                     prevIndex = shuffledIndices[currentShuffledIndex - 1];
+                     console.log(`Shuffle ON: Playing previous shuffled video. Prev original index: ${prevIndex}`);
+                }
+            } else {
+                // الترتيب العادي
+                if (currentVideoIndex > 0) {
+                    prevIndex = currentVideoIndex - 1;
+                    console.log(`Shuffle OFF: Playing previous video in order. Prev index: ${prevIndex}`);
+                } else {
+                    // وصلت لبداية القائمة العادية
+                    if (repeatMode === 'all' && playlist.length > 0) {
+                        // انتقل للأخير في القائمة العادية
+                        prevIndex = playlist.length - 1;
+                        console.log(`Shuffle OFF & Repeat All ON: Playing previous from start, going to last: ${prevIndex}`);
+                    } else {
+                        console.log("Shuffle OFF: At start, no previous.");
+                        player.seekTo(0, true); // أعد التشغيل الحالي فقط
+                        return;
+                    }
+                }
+            }
+
+            if (prevIndex !== undefined) {
+                playVideo(prevIndex);
+            }
+        }
+
+        function togglePlayPause() {
+            if (!player || !isPlayerReady) return;
+            const state = player.getPlayerState();
+            if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
+                player.pauseVideo();
+                 console.log("togglePlayPause: Pausing video.");
+            } else {
+                player.playVideo();
+                 console.log("togglePlayPause: Playing video.");
+            }
+        }
+
+        function updatePlayPauseButton() {
+            if (!player || !isPlayerReady || !player.getPlayerState) {
+                playPauseBtn.textContent = '▶'; // الافتراضي
+                playPauseBtn.title = 'تشغيل';
+                playPauseBtn.disabled = true; // تعطيل إذا لم يكن جاهزاً
+                return;
+            }
+
+            const state = player.getPlayerState();
+            if (state === YT.PlayerState.PLAYING) {
+                playPauseBtn.textContent = '❚❚'; // رمز الإيقاف المؤقت
+                playPauseBtn.title = 'إيقاف مؤقت (Space/K)';
+                playPauseBtn.disabled = false;
+            } else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED || state === YT.PlayerState.CUED || state === -1) {
+                playPauseBtn.textContent = '▶'; // رمز التشغيل
+                playPauseBtn.title = 'تشغيل (Space/K)';
+                 playPauseBtn.disabled = playlist.length === 0; // تعطيل إذا كانت القائمة فارغة
+            } else if (state === YT.PlayerState.BUFFERING) {
+                playPauseBtn.textContent = '...'; // أو أيقونة تحميل
+                playPauseBtn.title = 'جاري التحميل...';
+                playPauseBtn.disabled = true; // تعطيل أثناء التحميل
+            }
+        }
+
+        function updateNavButtons() {
+             const canGoPrev = isShuffleOn
+                 ? (repeatMode === 'all' || getShuffledIndices().indexOf(currentVideoIndex) > 0)
+                 : (repeatMode === 'all' || currentVideoIndex > 0);
+             const canGoNext = isShuffleOn
+                 ? (repeatMode === 'all' || getShuffledIndices().indexOf(currentVideoIndex) < getShuffledIndices().length - 1)
+                 : (repeatMode === 'all' || currentVideoIndex < playlist.length - 1);
+
+             prevBtn.disabled = playlist.length <= 1 || !canGoPrev;
+             nextBtn.disabled = playlist.length <= 1 || !canGoNext;
+
+             // تعطيل زر التشغيل إذا كانت القائمة فارغة ولم يتم تشغيل شيء
+             updatePlayPauseButton();
+        }
+
+        // -------------------------------------------------------------
+        //  Progress Bar & Time Display
+        // -------------------------------------------------------------
+
+        function startProgressUpdater() {
+            // إيقاف المؤقت القديم إذا كان يعمل
+             stopProgressUpdater();
+
+            // بدء مؤقت جديد لتحديث كل ثانية
+            progressUpdateInterval = setInterval(() => {
+                if (player && isPlayerReady && typeof player.getCurrentTime === 'function' && typeof player.getDuration === 'function') {
+                    const currentTime = player.getCurrentTime();
+                    const duration = player.getDuration();
+                    const buffered = player.getVideoLoadedFraction(); // نسبة التحميل
+
+                    if (!isNaN(duration) && duration > 0) {
+                        // تحديث شريط التقدم
+                        const progressPercent = (currentTime / duration) * 100;
+                        progressBarFilled.style.width = `${progressPercent}%`;
+
+                         // تحديث النقطة الصغيرة (Thumb)
+                         // نحتاج إلى تحويل النسبة إلى قيمة بكسل أو استخدام right/left
+                         progressBarThumb.style.right = `${progressPercent}%`; // لـ dir=rtl
+                         progressBarThumb.style.opacity = '1'; // إظهار النقطة طالما يتم التحديث
+
+                        // تحديث شريط التحميل المؤقت
+                        const bufferedPercent = buffered * 100;
+                        progressBarBuffered.style.width = `${bufferedPercent}%`;
+
+                        // تحديث عرض الوقت
+                        timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+                    } else {
+                        // إذا كانت المدة غير متاحة بعد
+                        timeDisplay.textContent = `${formatTime(currentTime)} / --:--`;
+                        progressBarFilled.style.width = `0%`;
+                        progressBarThumb.style.opacity = '0';
+                        progressBarBuffered.style.width = `0%`;
+                    }
+                }
+            }, 500); // تحديث كل نصف ثانية (أكثر سلاسة)
+        }
+
+        function stopProgressUpdater() {
+            if (progressUpdateInterval) {
+                clearInterval(progressUpdateInterval);
+                progressUpdateInterval = null;
+                 // إخفاء النقطة عند التوقف
+                 //progressBarThumb.style.opacity = '0';
+            }
+        }
+
+        function handleProgressClick(event) {
+            if (!player || !isPlayerReady || typeof player.getDuration !== 'function') return;
+
+            const duration = player.getDuration();
+            if (isNaN(duration) || duration <= 0) return;
+
+            const progressBarRect = progressBarContainer.getBoundingClientRect();
+            // التعامل مع RTL: النقر يبدأ من اليمين
+            const clickPositionX = event.clientX;
+            const progressBarStart = progressBarRect.right; // بداية الشريط من اليمين
+            const progressBarWidth = progressBarRect.width;
+
+             // حساب النسبة من اليمين إلى اليسار
+             let clickRatio = (progressBarStart - clickPositionX) / progressBarWidth;
+             clickRatio = Math.max(0, Math.min(1, clickRatio)); // ضمان بقاء النسبة بين 0 و 1
+
+            const seekTime = clickRatio * duration;
+
+             console.log(`Progress bar clicked. Ratio (RTL): ${clickRatio.toFixed(3)}, Seeking to: ${formatTime(seekTime)}`);
+
+            player.seekTo(seekTime, true); // true = allowSeekAhead
+
+            // تحديث فوري للواجهة (اختياري، سيتم تحديثه بواسطة المؤقت)
+            progressBarFilled.style.width = `${clickRatio * 100}%`;
+            progressBarThumb.style.right = `${clickRatio * 100}%`;
+            timeDisplay.textContent = `${formatTime(seekTime)} / ${formatTime(duration)}`;
+             // تأكد من إعادة تشغيل الفيديو إذا كان متوقفاً
+             if (player.getPlayerState() !== YT.PlayerState.PLAYING) {
+                 player.playVideo();
+             }
+        }
+
+        function formatTime(totalSeconds) {
+            if (isNaN(totalSeconds) || totalSeconds < 0) {
+                return "00:00";
+            }
+            const seconds = Math.floor(totalSeconds % 60);
+            const minutes = Math.floor((totalSeconds / 60) % 60);
+            const hours = Math.floor(totalSeconds / 3600);
+
+            const formattedSeconds = String(seconds).padStart(2, '0');
+            const formattedMinutes = String(minutes).padStart(2, '0');
+
+            if (hours > 0) {
+                return `${hours}:${formattedMinutes}:${formattedSeconds}`;
+            } else {
+                return `${formattedMinutes}:${formattedSeconds}`;
+            }
+        }
+
+        // -------------------------------------------------------------
+        //  Volume Control
+        // -------------------------------------------------------------
+
+        function toggleMute() {
+            if (!player || !isPlayerReady) return;
+            if (player.isMuted()) {
+                player.unMute();
+                isMuted = false;
+                 // استعادة مستوى الصوت السابق، أو استخدام الحالي إذا لم يتم الكتم من قبل
+                 volumeSlider.value = currentVolume;
+                 player.setVolume(currentVolume);
+                 console.log("Unmuted. Volume set to:", currentVolume);
+            } else {
+                // حفظ مستوى الصوت الحالي قبل الكتم
+                 currentVolume = player.getVolume(); // تحديث مستوى الصوت الحالي
+                player.mute();
+                isMuted = true;
+                 volumeSlider.value = 0; // يمكن ضبط الشريط إلى الصفر عند الكتم
+                 console.log("Muted. Previous volume was:", currentVolume);
+            }
+            updateVolumeUI();
+             saveAppState(); // حفظ حالة الكتم والصوت
+        }
+
+        function setVolume(volumeLevel) {
+             if (!player || !isPlayerReady) return;
+             volumeLevel = Math.max(0, Math.min(100, volumeLevel)); // ضمان القيمة بين 0 و 100
+
+             player.setVolume(volumeLevel);
+             currentVolume = volumeLevel; // تحديث مستوى الصوت الحالي
+
+             if (volumeLevel > 0 && isMuted) {
+                 player.unMute(); // إلغاء الكتم تلقائياً إذا تم رفع الصوت
+                 isMuted = false;
+             } else if (volumeLevel === 0 && !isMuted) {
+                 player.mute(); // كتم الصوت إذا وصل للصفر
+                 isMuted = true;
+             }
+             console.log("Volume set to:", volumeLevel);
+             updateVolumeUI();
+             saveAppState(); // حفظ مستوى الصوت الجديد
+        }
+
+        function updateVolumeUI() {
+            if (!player || !isPlayerReady || typeof player.getVolume !== 'function') {
+                 // حالة افتراضية أو عند عدم الجاهزية
+                 volumeSlider.value = currentVolume; // استخدام القيمة المحفوظة
+                 muteBtn.textContent = currentVolume > 0 ? (isMuted ? '🔇' : '🔊') : '🔇';
+                 muteBtn.title = isMuted ? 'إلغاء الكتم (M)' : 'كتم (M)';
+                 return;
+            }
+
+            const volume = isMuted ? 0 : player.getVolume();
+             volumeSlider.value = volume;
+
+             // تحديث أيقونة الكتم
+            if (isMuted || volume === 0) {
+                muteBtn.textContent = '🔇';
+                muteBtn.title = 'إلغاء الكتم (M)';
+            } else if (volume > 50) {
+                muteBtn.textContent = '🔊';
+                muteBtn.title = 'كتم (M)';
+            } else {
+                muteBtn.textContent = '🔉'; // أيقونة صوت أقل
+                muteBtn.title = 'كتم (M)';
+            }
+
+             // تحديث خلفية شريط الصوت لتعكس المستوى (اختياري)
+             const percentage = volume / 100;
+             const colorStop = `linear-gradient(to left, var(--primary-color) ${percentage * 100}%, rgba(255, 255, 255, 0.3) ${percentage * 100}%)`; // RTL: من اليمين لليسار
+             volumeSlider.style.background = colorStop;
+        }
+
+        // -------------------------------------------------------------
+        //  Repeat & Shuffle
+        // -------------------------------------------------------------
+
+        function toggleRepeat() {
+            const currentIndex = REPEAT_MODES.indexOf(repeatMode);
+            const nextIndex = (currentIndex + 1) % REPEAT_MODES.length;
+            repeatMode = REPEAT_MODES[nextIndex];
+
+            console.log("Repeat Mode changed to:", repeatMode);
+            updateRepeatButton();
+             saveAppState(); // حفظ وضع التكرار
+             updateNavButtons(); // تحديث أزرار التنقل بناءً على الوضع الجديد
+            showNotification(`وضع التكرار: ${getRepeatModeText()}`);
+        }
+
+        function updateRepeatButton() {
+            repeatBtn.textContent = REPEAT_ICONS[repeatMode] || '🔁';
+            repeatBtn.title = `تكرار: ${getRepeatModeText()} (R)`;
+             repeatBtn.classList.toggle('active', repeatMode !== 'off');
+        }
+
+        function getRepeatModeText() {
+            switch (repeatMode) {
+                case 'one': return 'الفيديو الحالي';
+                case 'all': return 'القائمة كلها';
+                default: return 'إيقاف';
+            }
+        }
+
+        function toggleShuffle() {
+            isShuffleOn = !isShuffleOn;
+            console.log("Shuffle Mode changed to:", isShuffleOn);
+            updateShuffleButton();
+             applyShuffle(); // تطبيق أو إلغاء التبديل العشوائي
+             renderPlaylist(); // إعادة عرض القائمة بالترتيب الجديد
+             saveAppState(); // حفظ حالة التبديل
+             updateNavButtons(); // تحديث أزرار التنقل
+            showNotification(isShuffleOn ? 'تم تفعيل التبديل العشوائي' : 'تم إلغاء التبديل العشوائي');
+        }
+
+        function updateShuffleButton() {
+            shuffleBtn.classList.toggle('active', isShuffleOn);
+            shuffleBtn.title = `تبديل عشوائي (${isShuffleOn ? 'مفعل' : 'متوقف'}) (S)`;
+        }
+
+        // لتطبيق التبديل العشوائي (أو إلغاؤه)
+        let shuffledIndices = []; // تخزين الفهارس المخلوطة
+        function applyShuffle() {
+            if (isShuffleOn) {
+                // إنشاء قائمة فهارس من 0 إلى طول القائمة - 1
+                const indices = Array.from(playlist.keys());
+                 // خلط الفهارس باستخدام Fisher-Yates algorithm
+                 for (let i = indices.length - 1; i > 0; i--) {
+                     const j = Math.floor(Math.random() * (i + 1));
+                     [indices[i], indices[j]] = [indices[j], indices[i]]; // تبديل العناصر
+                 }
+                 shuffledIndices = indices;
+                 console.log("Shuffled indices generated:", shuffledIndices);
+            } else {
+                 shuffledIndices = []; // مسح الفهارس المخلوطة
+                 console.log("Shuffle disabled. Using original order.");
+            }
+            // لا نغير playlist نفسها، فقط طريقة عرضها أو الانتقال بينها
+        }
+
+        // دالة مساعدة للحصول على الفهارس المراد استخدامها (عادية أو مخلوطة)
+        function getShuffledIndices() {
+             // تأكد من أن الفهارس المخلوطة محدّثة إذا تغير طول القائمة
+             if (isShuffleOn && shuffledIndices.length !== playlist.length) {
+                 applyShuffle(); // إعادة الخلط إذا تغيرت القائمة
+             }
+             return isShuffleOn ? shuffledIndices : Array.from(playlist.keys());
+        }
+
+
+        // -------------------------------------------------------------
+        //  Playback Speed Control
+        // -------------------------------------------------------------
+
+        function setPlaybackSpeed(speed) {
+             if (!player || !isPlayerReady || typeof player.setPlaybackRate !== 'function') return;
+             speed = parseFloat(speed);
+             if (isNaN(speed)) return;
+
+             const availableSpeeds = player.getAvailablePlaybackRates ? player.getAvailablePlaybackRates() : [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]; // قيم افتراضية
+             if (availableSpeeds.includes(speed)) {
+                 player.setPlaybackRate(speed);
+                 currentSpeed = speed;
+                 console.log("Playback speed set to:", speed);
+                 updateSpeedSelector();
+                 saveAppState(); // حفظ السرعة
+             } else {
+                 console.warn("Requested speed", speed, "is not available.");
+                 // إعادة المحدد للقيمة الحالية
+                 updateSpeedSelector();
+             }
+        }
+
+        function updateSpeedSelector() {
+            speedSelector.value = currentSpeed;
+        }
+
+        // -------------------------------------------------------------
+        //  Fullscreen Control
+        // -------------------------------------------------------------
+
+        function toggleFullscreen() {
+            const doc = document; // المستند الرئيسي
+            const playerElement = mainContainer; // استخدام الحاوية الرئيسية لملء الشاشة
+
+            if (!doc.fullscreenElement && !doc.webkitFullscreenElement && !doc.mozFullScreenElement && !doc.msFullscreenElement) {
+                // الدخول في وضع ملء الشاشة
+                console.log("Entering fullscreen...");
+                if (playerElement.requestFullscreen) {
+                    playerElement.requestFullscreen();
+                } else if (playerElement.mozRequestFullScreen) { /* Firefox */
+                    playerElement.mozRequestFullScreen();
+                } else if (playerElement.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                    playerElement.webkitRequestFullscreen();
+                } else if (playerElement.msRequestFullscreen) { /* IE/Edge */
+                    playerElement.msRequestFullscreen();
+                }
+                 // قد تحتاج إلى إعادة تشغيل الفيديو في بعض المتصفحات بعد الدخول لملء الشاشة
+                 // if (player && player.playVideo) setTimeout(() => player.playVideo(), 100);
+            } else {
+                // الخروج من وضع ملء الشاشة
+                console.log("Exiting fullscreen...");
+                if (doc.exitFullscreen) {
+                    doc.exitFullscreen();
+                } else if (doc.mozCancelFullScreen) { /* Firefox */
+                    doc.mozCancelFullScreen();
+                } else if (doc.webkitExitFullscreen) { /* Chrome, Safari & Opera */
+                    doc.webkitExitFullscreen();
+                } else if (doc.msExitFullscreen) { /* IE/Edge */
+                    doc.msExitFullscreen();
+                }
+            }
+        }
+
+        function updateFullscreenButton() {
+            const doc = document;
+            if (doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement) {
+                fullscreenBtn.textContent = 'Exit ⛶'; // أو أيقونة أخرى للخروج
+                fullscreenBtn.title = 'الخروج من وضع ملء الشاشة (F/Esc)';
+            } else {
+                fullscreenBtn.textContent = '⛶';
+                fullscreenBtn.title = 'ملء الشاشة (F)';
+            }
+        }
+
+        // الاستماع لتغير حالة ملء الشاشة (لتحديث الزر)
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+        document.addEventListener('mozfullscreenchange', updateFullscreenButton);
+        document.addEventListener('MSFullscreenChange', updateFullscreenButton);
+
+
+        // -------------------------------------------------------------
+        //  Playback Position Memory
+        // -------------------------------------------------------------
+
+        function saveCurrentPosition(time = null) {
+             if (!player || !isPlayerReady || typeof player.getCurrentTime !== 'function' || currentVideoIndex === -1) return;
+
+             const currentVideo = playlist[currentVideoIndex];
+             if (!currentVideo) return;
+
+             const position = (time !== null) ? time : player.getCurrentTime();
+             if (!isNaN(position) && position >= 0) {
+                lastSavedPosition[currentVideo.id] = position.toFixed(2); // حفظ لـ 2 خانة عشرية
+                 // يمكن حفظها في localStorage بشكل دوري أقل تكراراً لتقليل الكتابة
+                 // throttleSavePosition(); // دالة لتحديد معدل الحفظ
+             }
+        }
+
+        function loadSavedPositions() {
+            const saved = localStorage.getItem('youtubeLastPositions');
+            if (saved) {
+                lastSavedPosition = JSON.parse(saved);
+                console.log("Loaded last saved positions for videos.");
+            } else {
+                lastSavedPosition = {};
+            }
+        }
+
+        function savePositionsToStorage() {
+            // حفظ كل المواضع المعروفة
+            localStorage.setItem('youtubeLastPositions', JSON.stringify(lastSavedPosition));
+            console.log("Saved video positions to localStorage.");
+        }
+
+         // حفظ المواضع عند إغلاق الصفحة أو تحديثها
+         window.addEventListener('beforeunload', () => {
+             saveCurrentPosition(); // تأكد من حفظ الموضع الأخير
+             savePositionsToStorage();
+         });
+
+
+        // -------------------------------------------------------------
+        //  State Management (Load/Save App State)
+        // -------------------------------------------------------------
+
+        function saveAppState() {
+            const state = {
+                currentVideoIndex: currentVideoIndex,
+                volume: currentVolume,
+                isMuted: isMuted,
+                repeatMode: repeatMode,
+                isShuffleOn: isShuffleOn,
+                playbackRate: currentSpeed
+                // لا نحفظ قائمة التشغيل هنا، لها دالة خاصة بها savePlaylist()
+                 // لا نحفظ المواضع هنا، لها دالة خاصة بها savePositionsToStorage()
+            };
+            localStorage.setItem('youtubeAppState', JSON.stringify(state));
+            console.log("App state saved:", state);
+
+             // حفظ قائمة التشغيل والمواضع أيضاً (يمكن دمجها إذا أردت)
+             savePlaylist();
+             savePositionsToStorage();
+        }
+
+        function loadAppState() {
+             loadPlaylist(); // تحميل قائمة التشغيل أولاً
+             loadSavedPositions(); // تحميل المواضع المحفوظة
+
+            const savedState = localStorage.getItem('youtubeAppState');
+            if (savedState) {
+                try {
+                    const state = JSON.parse(savedState);
+                    console.log("Loading app state:", state);
+
+                     // استعادة الفهرس الحالي (مع التحقق من صلاحيته)
+                     if (state.currentVideoIndex !== undefined && state.currentVideoIndex >= 0 && state.currentVideoIndex < playlist.length) {
+                        currentVideoIndex = state.currentVideoIndex;
+                     } else if (playlist.length > 0) {
+                        currentVideoIndex = 0; // إذا كان الفهرس غير صالح، ابدأ من الأول
+                     } else {
+                        currentVideoIndex = -1; // إذا كانت القائمة فارغة
+                     }
+
+                    currentVolume = state.volume !== undefined ? state.volume : 100;
+                    isMuted = state.isMuted !== undefined ? state.isMuted : false;
+                    repeatMode = REPEAT_MODES.includes(state.repeatMode) ? state.repeatMode : 'off';
+                    isShuffleOn = state.isShuffleOn !== undefined ? state.isShuffleOn : false;
+                    currentSpeed = state.playbackRate !== undefined ? state.playbackRate : 1;
+
+                    // تطبيق التبديل العشوائي إذا كان مفعلاً
+                    if (isShuffleOn) {
+                        applyShuffle();
+                        renderPlaylist(); // إعادة العرض بالترتيب العشوائي
+                    }
+
+                     console.log("App state loaded successfully.");
+                } catch (e) {
+                     console.error("Error loading app state from localStorage:", e);
+                     // استخدام القيم الافتراضية إذا حدث خطأ
+                     resetToDefaults();
+                }
+            } else {
+                console.log("No saved app state found. Using defaults.");
+                 // تحميل الفهرس الأول إذا وجدت قائمة تشغيل ولم يوجد حالة محفوظة
+                 if (playlist.length > 0) currentVideoIndex = 0;
+                resetToDefaults(); // تعيين القيم الافتراضية
+            }
+
+            // تحديث الواجهة لتعكس الحالة المحملة
+            updateUIFromState();
+        }
+
+        function resetToDefaults() {
+             // إعادة تعيين المتغيرات إلى قيمها الأولية
+            // currentVideoIndex تم التعامل معه في loadAppState
+             currentVolume = 100;
+             isMuted = false;
+             repeatMode = 'off';
+             isShuffleOn = false;
+             currentSpeed = 1;
+        }
+
+        function updateUIFromState() {
+             updateVolumeUI();
+             updateRepeatButton();
+             updateShuffleButton();
+             updateSpeedSelector();
+             renderPlaylist(); // للتأكد من التظليل الصحيح والترتيب
+             updateNavButtons();
+        }
+
+        function applyInitialSettings() {
+             if (!player || !isPlayerReady) return;
+             console.log("Applying initial player settings...");
+             // تطبيق الصوت
+             if (isMuted) {
+                 player.mute();
+             } else {
+                 player.unMute();
+                 player.setVolume(currentVolume);
+             }
+             // تطبيق سرعة التشغيل
+             setPlaybackSpeed(currentSpeed); // استخدام دالتنا للتأكد من التحقق
+             updateVolumeUI(); // تحديث الواجهة
+        }
+
+
+        // -------------------------------------------------------------
+        //  Notifications
+        // -------------------------------------------------------------
+        let notificationTimeout;
+        function showNotification(message) {
+            if (notificationTimeout) clearTimeout(notificationTimeout); // مسح المؤقت القديم
+            notification.textContent = message;
+            notification.classList.add('show');
+
+            notificationTimeout = setTimeout(() => {
+                notification.classList.remove('show');
+                notificationTimeout = null;
+            }, 3000); // إخفاء بعد 3 ثوان
+        }
+
+        // -------------------------------------------------------------
+        //  Wake Lock (Keep Screen On)
+        // -------------------------------------------------------------
+        let wakeLock = null;
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Screen Wake Lock released:', wakeLock.released);
+                        // قد ترغب في محاولة إعادة الحصول عليه إذا لم يتم إطلاقه عمدًا
+                    });
+                    console.log('Screen Wake Lock is active.');
+                    showNotification('تم تفعيل وضع إبقاء الشاشة.');
+                } catch (err) {
+                    console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+                    wakeLock = null;
+                     // لا تظهر إشعار خطأ للمستخدم، قد يكون غير مدعوم فقط
+                }
+            } else {
+                console.warn('Wake Lock API not supported.');
+            }
+        }
+
+        // إعادة طلب القفل عند عودة رؤية الصفحة
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                console.log("Document became visible, attempting to re-acquire wake lock.");
+                await requestWakeLock();
+            }
+        });
+
+        // -------------------------------------------------------------
+        //  Keyboard Shortcuts
+        // -------------------------------------------------------------
+        function handleKeyPress(e) {
+             // تجاهل الاختصارات إذا كان التركيز على حقل الإدخال
+             if (document.activeElement === videoUrlInput) {
+                 // السماح لـ Enter بإضافة الفيديو
+                 if (e.key === 'Enter') {
+                     addToPlaylistBtn.click(); // محاكاة النقر على زر الإضافة
+                 }
+                 return;
+             }
+
+             console.log("Key pressed:", e.key, "Shift:", e.shiftKey);
+
+            // استخدام e.key يوفر توافقية أفضل من keyCode
+            switch (e.key.toUpperCase()) { // تحويل للحرف الكبير لتجاهل حالة Shift للحروف
+                case ' ': // Spacebar
+                case 'K': // K (common shortcut)
+                    e.preventDefault(); // منع التمرير بالـ Space
+                    togglePlayPause();
+                    break;
+                case 'M': // M for Mute
+                    e.preventDefault();
+                    toggleMute();
+                    break;
+                case 'F': // F for Fullscreen
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'R': // R for Repeat
+                    e.preventDefault();
+                    toggleRepeat();
+                    break;
+                case 'S': // S for Shuffle
+                     e.preventDefault();
+                     toggleShuffle();
+                     break;
+                case 'P': // P for Previous (with Shift)
+                    if (e.shiftKey) {
+                        e.preventDefault();
+                        playPrevious();
+                    }
+                    break;
+                case 'N': // N for Next (with Shift)
+                    if (e.shiftKey) {
+                        e.preventDefault();
+                        playNext();
+                    }
+                    break;
+                 // --- اختصارات البحث (Seek) ---
+                 case 'ARROWLEFT': // Left Arrow - Seek Backward 5s
+                      e.preventDefault();
+                      seekRelative(-5);
+                      break;
+                 case 'ARROWRIGHT': // Right Arrow - Seek Forward 5s
+                      e.preventDefault();
+                      seekRelative(5);
+                      break;
+                 case 'J': // J - Seek Backward 10s
+                      e.preventDefault();
+                      seekRelative(-10);
+                      break;
+                 case 'L': // L - Seek Forward 10s
+                      e.preventDefault();
+                      seekRelative(10);
+                      break;
+                 // --- اختصارات الأرقام للبحث النسبي ---
+                 case '0': case '1': case '2': case '3': case '4':
+                 case '5': case '6': case '7': case '8': case '9':
+                      e.preventDefault();
+                      seekToPercentage(parseInt(e.key) * 10);
+                      break;
+                 // --- اختصارات مستوى الصوت ---
+                 case 'ARROWUP': // Up Arrow - Volume Up
+                      e.preventDefault();
+                      adjustVolume(5); // زيادة 5%
+                      break;
+                 case 'ARROWDOWN': // Down Arrow - Volume Down
+                      e.preventDefault();
+                      adjustVolume(-5); // تقليل 5%
+                      break;
+
+                 // --- اختصارات أخرى (اختياري) ---
+                 /*
+                 case 'I': // I for PIP (Picture-in-Picture)
+                     e.preventDefault();
+                     togglePictureInPicture();
+                     break;
+                 case '<': // < (Shift + ,) - Decrease Speed
+                     if (e.shiftKey) {
+                         e.preventDefault();
+                         changeSpeed(-1); // اذهب للسرعة الأبطأ التالية
+                     }
+                     break;
+                 case '>': // > (Shift + .) - Increase Speed
+                     if (e.shiftKey) {
+                         e.preventDefault();
+                         changeSpeed(1); // اذهب للسرعة الأسرع التالية
+                     }
+                     break;
+                 */
+                 case 'ESCAPE': // Escape - Exit Fullscreen
+                      // المتصفح يتعامل معها عادةً للخروج من ملء الشاشة
+                      // يمكن إضافة منطق إضافي إذا لزم الأمر
+                      break;
+
+            }
+        }
+
+         function seekRelative(seconds) {
+            if (!player || !isPlayerReady || typeof player.getCurrentTime !== 'function' || typeof player.seekTo !== 'function') return;
+            const currentTime = player.getCurrentTime();
+            const newTime = Math.max(0, currentTime + seconds); // تأكد من عدم الذهاب لوقت سالب
+            player.seekTo(newTime, true);
+            showNotification(`${seconds > 0 ? '+' : ''}${seconds} ثواني`);
+             // تحديث الواجهة فوراً
+             updateProgressFromTime(newTime);
+         }
+
+         function seekToPercentage(percentage) {
+            if (!player || !isPlayerReady || typeof player.getDuration !== 'function' || typeof player.seekTo !== 'function') return;
+            const duration = player.getDuration();
+            if (isNaN(duration) || duration <= 0) return;
+            const newTime = (percentage / 100) * duration;
+            player.seekTo(newTime, true);
+            showNotification(`الانتقال إلى ${percentage}%`);
+             // تحديث الواجهة فوراً
+             updateProgressFromTime(newTime);
+         }
+
+         function adjustVolume(delta) {
+             if (!player || !isPlayerReady || typeof player.getVolume !== 'function') return;
+             let newVolume = player.getVolume() + delta;
+             newVolume = Math.max(0, Math.min(100, newVolume)); // ضمن الحدود 0-100
+             setVolume(newVolume); // استخدم دالتنا للضبط والحفظ
+             showNotification(`مستوى الصوت: ${Math.round(newVolume)}%`);
+         }
+
+         // دالة لتحديث شريط التقدم يدوياً بعد البحث
+         function updateProgressFromTime(time) {
+             if (!player || typeof player.getDuration !== 'function') return;
+             const duration = player.getDuration();
+             if (isNaN(duration) || duration <= 0) return;
+             const progressPercent = (time / duration) * 100;
+             progressBarFilled.style.width = `${progressPercent}%`;
+             progressBarThumb.style.right = `${progressPercent}%`;
+             timeDisplay.textContent = `${formatTime(time)} / ${formatTime(duration)}`;
+         }
+
+
+        // -------------------------------------------------------------
+        //  Initialization & Event Listeners
+        // -------------------------------------------------------------
+        const mainContainer = document.querySelector('.main-container'); // تعريف للحاوية الرئيسية لملء الشاشة
+
+        function init() {
+            console.log("Initializing Application...");
+            loadYouTubeAPI(); // طلب تحميل الـ API أولاً
+            // loadAppState() ستُستدعى الآن من داخل onYouTubeIframeAPIReady
+
+            // -- Event Listeners --
+            // زر إضافة إلى القائمة
+            addToPlaylistBtn.addEventListener('click', () => {
+                const url = videoUrlInput.value.trim();
+                if (url) {
+                    addToPlaylist(url);
+                } else {
+                    showNotification('الرجاء إدخال رابط أو معرف فيديو');
+                    videoUrlInput.focus();
+                }
+            });
+
+             // الإضافة عند الضغط على Enter في حقل الإدخال
+             // (تم التعامل معه داخل handleKeyPress)
+
+             // زر التشغيل/الإيقاف
+             playPauseBtn.addEventListener('click', togglePlayPause);
+
+             // أزرار التالي والسابق
+             prevBtn.addEventListener('click', playPrevious);
+             nextBtn.addEventListener('click', playNext);
+
+             // زر كتم الصوت وشريط تمرير الصوت
+             muteBtn.addEventListener('click', toggleMute);
+             volumeSlider.addEventListener('input', (e) => {
+                setVolume(parseInt(e.target.value));
+             });
+
+             // زر التكرار والتبديل العشوائي
+             repeatBtn.addEventListener('click', toggleRepeat);
+             shuffleBtn.addEventListener('click', toggleShuffle);
+
+             // محدد سرعة التشغيل
+             speedSelector.addEventListener('change', (e) => {
+                setPlaybackSpeed(e.target.value);
+             });
+
+             // زر ملء الشاشة
+             fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+             // النقر على شريط التقدم للبحث
+             progressBarContainer.addEventListener('click', handleProgressClick);
+
+             // اختصارات لوحة المفاتيح
+             document.addEventListener('keydown', handleKeyPress);
+
+             // محاولة تفعيل وضع إبقاء الشاشة (اختياري)
+             // يمكن استدعاؤه عند بدء تشغيل الفيديو لأول مرة أو عند النقر على زر خاص
+             requestWakeLock();
+
+            console.log("Event listeners attached.");
+        }
+
+        // بدء التطبيق عند تحميل الصفحة بالكامل
+        window.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
